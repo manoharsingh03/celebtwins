@@ -6,19 +6,68 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Twitter, Facebook, Instagram, Download, Share2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface CelebrityMatchProps {
   userImage: string;
   celebrities: Celebrity[];
+  matchId?: string;
 }
 
-const CelebrityMatch = ({ userImage, celebrities }: CelebrityMatchProps) => {
+const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps) => {
   const [selectedCelebrity, setSelectedCelebrity] = useState<Celebrity | null>(
     celebrities.length > 0 ? celebrities[0] : null
   );
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleCelebritySelect = (celebrity: Celebrity) => {
     setSelectedCelebrity(celebrity);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'My Celebrity Match',
+        text: `I look ${selectedCelebrity?.matchPercentage}% like ${selectedCelebrity?.name}!`,
+        url: window.location.href,
+      }).catch(err => {
+        console.error('Error sharing:', err);
+      });
+    } else {
+      toast({
+        title: "Sharing not supported",
+        description: "Web Share API is not supported in your browser.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveImage = () => {
+    // In a real app, you would implement image saving logic here
+    toast({
+      title: "Image Saved",
+      description: "Your match has been saved to your account.",
+    });
+  };
+
+  const handleSocialShare = (platform: string) => {
+    // In a real app, you would implement social sharing logic here
+    toast({
+      title: `Shared on ${platform}`,
+      description: `Your match has been shared on ${platform}.`,
+    });
+  };
+
+  const promptLogin = () => {
+    toast({
+      title: "Login Required",
+      description: "Create an account to save your matches.",
+    });
+    navigate("/login");
   };
 
   return (
@@ -56,24 +105,49 @@ const CelebrityMatch = ({ userImage, celebrities }: CelebrityMatchProps) => {
 
               <div className="pt-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={user ? handleSaveImage : promptLogin}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Save
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={handleShare}
+                  >
                     <Share2 className="h-4 w-4 mr-2" />
                     Share
                   </Button>
                 </div>
                 
                 <div className="flex justify-center space-x-3 mt-4">
-                  <Button size="icon" variant="outline" className="rounded-full w-8 h-8">
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="rounded-full w-8 h-8"
+                    onClick={() => handleSocialShare("Twitter")}
+                  >
                     <Twitter className="h-4 w-4 text-[#1DA1F2]" />
                   </Button>
-                  <Button size="icon" variant="outline" className="rounded-full w-8 h-8">
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="rounded-full w-8 h-8"
+                    onClick={() => handleSocialShare("Facebook")}
+                  >
                     <Facebook className="h-4 w-4 text-[#4267B2]" />
                   </Button>
-                  <Button size="icon" variant="outline" className="rounded-full w-8 h-8">
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="rounded-full w-8 h-8"
+                    onClick={() => handleSocialShare("Instagram")}
+                  >
                     <Instagram className="h-4 w-4 text-[#E1306C]" />
                   </Button>
                 </div>

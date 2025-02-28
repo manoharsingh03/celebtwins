@@ -11,6 +11,7 @@ import { Camera, ArrowLeft } from "lucide-react";
 interface LocationState {
   userImage: string;
   celebrities: Celebrity[];
+  matchId?: string;
 }
 
 const Results = () => {
@@ -77,6 +78,7 @@ const Results = () => {
           <CelebrityMatch
             userImage={state.userImage}
             celebrities={state.celebrities}
+            matchId={state.matchId}
           />
         ) : (
           <div className="flex justify-center items-center py-20">

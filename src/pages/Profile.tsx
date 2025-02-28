@@ -4,7 +4,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CelebrityMatch } from "@/lib/types";
+import { CelebrityMatch, Celebrity } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { User, Settings, History, LogOut } from "lucide-react";
@@ -79,7 +79,7 @@ const Profile = () => {
             id: match.id,
             userId: match.user_id,
             userImage: match.user_image,
-            celebrities: match.celebrities,
+            celebrities: match.celebrities as Celebrity[],
             createdAt: new Date(match.created_at)
           }));
           
