@@ -1,200 +1,160 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Celebrity } from "@/lib/types";
-import { ArrowLeft, History } from "lucide-react";
+import CelebrityMatch from "@/components/CelebrityMatch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import CelebrityMatch from "@/components/CelebrityMatch";
 
-interface MatchHistoryItem {
+interface MatchHistory {
   id: string;
   created_at: string;
+  user_id: string;
   user_image: string;
   celebrities: Celebrity[];
 }
 
 const Profile = () => {
-  const [matchHistory, setMatchHistory] = useState<MatchHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedMatch, setSelectedMatch] = useState<MatchHistoryItem | null>(null);
+  const [matchHistory, setMatchHistory] = useState<MatchHistory[]>([]);
+  const [activeTab, setActiveTab] = useState("history");
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-
     const fetchMatchHistory = async () => {
-      setIsLoading(true);
+      if (!user) return;
+
       try {
         const { data, error } = await supabase
-          .from("celebrity_matches")
+          .from("match_history")
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
         if (error) {
-          throw error;
+          console.error("Error fetching match history:", error);
+          return;
         }
 
-        // Type assertion to ensure data conforms to the MatchHistoryItem interface
-        const typedData = data.map(item => {
-          return {
-            ...item,
-            celebrities: Array.isArray(item.celebrities) 
-              ? item.celebrities as Celebrity[] 
-              : []
-          } as MatchHistoryItem;
-        });
+        // Transform the data to ensure celebrities are properly typed
+        const typedData = data.map(match => ({
+          ...match,
+          celebrities: match.celebrities as unknown as Celebrity[]
+        }));
 
         setMatchHistory(typedData);
       } catch (error) {
         console.error("Error fetching match history:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your match history.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
       }
     };
 
     fetchMatchHistory();
-  }, [user, navigate, toast]);
-
-  const viewMatch = (match: MatchHistoryItem) => {
-    setSelectedMatch(match);
-  };
-
-  const goBack = () => {
-    setSelectedMatch(null);
-  };
-
-  if (selectedMatch) {
-    return (
-      <Layout>
-        <div className="max-w-4xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-6"
-            onClick={goBack}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to History
-          </Button>
-          
-          <CelebrityMatch
-            userImage={selectedMatch.user_image}
-            celebrities={selectedMatch.celebrities}
-            matchId={selectedMatch.id}
-          />
-        </div>
-      </Layout>
-    );
-  }
+  }, [user]);
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
+      <div className="container max-w-4xl py-16">
         <div className="mb-8">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center p-1 mb-4 rounded-full bg-primary/10 text-primary">
-              <History className="h-4 w-4 mr-1" />
-              <span className="px-2 py-0.5 text-xs font-medium">Match History</span>
-            </div>
-            
-            <h1 className="text-3xl font-bold mt-2 mb-3">Your Celebrity Matches</h1>
-            <p className="text-muted-foreground">
-              View your past celebrity match results.
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold">Your Profile</h1>
+          <p className="text-muted-foreground mt-2">
+            View your match history and account settings
+          </p>
         </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin-slow">
-              <svg className="w-12 h-12 text-primary" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            </div>
-          </div>
-        ) : matchHistory.length === 0 ? (
-          <div className="text-center py-12 border border-dashed rounded-lg">
-            <p className="text-muted-foreground mb-4">You haven't made any celebrity matches yet.</p>
-            <Button onClick={() => navigate("/upload")}>
-              Try Your First Match
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {matchHistory.map((match) => (
-              <div
-                key={match.id}
-                className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => viewMatch(match)}
-              >
-                <div className="aspect-square relative">
-                  <img
-                    src={match.user_image}
-                    alt="Your uploaded photo"
-                    className="w-full h-full object-cover"
-                  />
-                  {match.celebrities[0] && (
-                    <div className="absolute bottom-0 right-0 p-2">
-                      <div className="w-16 h-16 rounded-full border-2 border-white overflow-hidden">
-                        <img
-                          src={match.celebrities[0].image}
-                          alt={match.celebrities[0].name}
-                          className="w-full h-full object-cover"
-                        />
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="history">Match History</TabsTrigger>
+            <TabsTrigger value="settings">Account Settings</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="history" className="mt-6">
+            {matchHistory.length > 0 ? (
+              <div className="space-y-6">
+                {matchHistory.map((match) => (
+                  <div key={match.id} className="border rounded-lg overflow-hidden">
+                    <div className="p-4 bg-muted/50 flex items-center justify-between border-b">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">Celebrity Match</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {new Date(match.created_at).toLocaleDateString()}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Your top {match.celebrities.length} celebrity matches
+                        </p>
                       </div>
+                      <Link 
+                        to="/results" 
+                        state={{ 
+                          userImage: match.user_image, 
+                          celebrities: match.celebrities,
+                          matchId: match.id,
+                          fromHistory: true
+                        }}
+                      >
+                        <Button variant="outline" size="sm">View Details</Button>
+                      </Link>
                     </div>
-                  )}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+                      {match.celebrities.slice(0, 3).map((celebrity, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <CelebrityMatch 
+                            celebrity={celebrity} 
+                            rank={index + 1}
+                            minimal={true}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 border rounded-lg">
+                <h3 className="text-lg font-medium mb-2">No matches yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  You haven't matched with any celebrities yet.
+                </p>
+                <Link to="/upload">
+                  <Button>Find Your Celebrity Match</Button>
+                </Link>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="settings" className="mt-6">
+            <div className="border rounded-lg p-6">
+              <h3 className="text-lg font-medium mb-4">Account Information</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p>{user?.email}</p>
                 </div>
-                <div className="p-4">
-                  <p className="font-medium">
-                    {match.celebrities[0]
-                      ? `Matched with ${match.celebrities[0].name}`
-                      : "No match found"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(match.created_at).toLocaleDateString()}
-                  </p>
+                
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Account created</p>
+                  <p>{user?.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}</p>
+                </div>
+                
+                <div className="pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                    }}
+                  >
+                    Sign Out
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-        
-        {matchHistory.length > 0 && (
-          <div className="mt-8 text-center">
-            <Button onClick={() => navigate("/upload")} variant="outline">
-              Try Another Match
-            </Button>
-          </div>
-        )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

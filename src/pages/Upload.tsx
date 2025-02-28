@@ -110,7 +110,7 @@ const Upload = () => {
               const formData = new FormData();
               formData.append('file', file);
               
-              // Upload the file to Supabase storage
+              // Upload the file to Supabase storage through our edge function
               fetch('/functions/v1/upload-image', {
                 method: 'POST',
                 body: formData,
