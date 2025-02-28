@@ -3,11 +3,13 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Camera } from "lucide-react";
+import { Camera, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -62,16 +64,31 @@ const Navbar = () => {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="ghost" size="sm" className="text-sm">
-                Sign in
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button size="sm" className="text-sm animate-fade-in">
-                Sign up
-              </Button>
-            </Link>
+            {!loading && (
+              <>
+                {user ? (
+                  <Link to="/profile">
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline">My Profile</span>
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login">
+                      <Button variant="ghost" size="sm" className="text-sm">
+                        Sign in
+                      </Button>
+                    </Link>
+                    <Link to="/register">
+                      <Button size="sm" className="text-sm animate-fade-in">
+                        Sign up
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

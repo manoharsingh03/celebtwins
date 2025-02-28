@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,86 +8,119 @@ import { CelebrityMatch } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { User, Settings, History, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock user data
-const mockUser = {
-  id: "user1",
-  name: "John Doe",
-  email: "john.doe@example.com",
-  avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1180&q=80",
+// Updated ProfileData type to match our database structure
+type ProfileData = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
 };
 
-// Mock history data
-const mockHistory: CelebrityMatch[] = [
-  {
-    id: "match1",
-    userId: "user1",
-    userImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1180&q=80",
-    celebrities: [
-      { 
-        id: "1", 
-        name: "Ryan Reynolds", 
-        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80", 
-        matchPercentage: 87 
-      },
-      { 
-        id: "2", 
-        name: "Michael B. Jordan", 
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80", 
-        matchPercentage: 75 
-      },
-    ],
-    createdAt: new Date(Date.now() - 86400000), // 1 day ago
-  },
-  {
-    id: "match2",
-    userId: "user1",
-    userImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1180&q=80",
-    celebrities: [
-      { 
-        id: "3", 
-        name: "Zendaya", 
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80", 
-        matchPercentage: 82 
-      },
-      { 
-        id: "4", 
-        name: "Emma Stone", 
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=688&q=80", 
-        matchPercentage: 70 
-      },
-    ],
-    createdAt: new Date(Date.now() - 259200000), // 3 days ago
-  }
-];
-
 const Profile = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [matches, setMatches] = useState<CelebrityMatch[]>([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut, loading } = useAuth();
 
   useEffect(() => {
-    // Simulate checking authentication
-    const timer = setTimeout(() => {
-      // For demo, we'll set this to true to show the profile
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    async function loadProfileData() {
+      if (!user) return;
 
-  const handleLogout = () => {
-    // Simulate logout
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/login");
+      try {
+        // Fetch profile data
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        if (profile) {
+          setProfileData(profile);
+        }
+      } catch (error: any) {
+        console.error('Error loading profile:', error.message);
+        toast({
+          title: 'Error loading profile',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+
+    async function loadMatches() {
+      if (!user) return;
+
+      try {
+        // Fetch celebrity matches
+        const { data, error } = await supabase
+          .from('celebrity_matches')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          // Transform the data to match our CelebrityMatch type
+          const formattedMatches: CelebrityMatch[] = data.map(match => ({
+            id: match.id,
+            userId: match.user_id,
+            userImage: match.user_image,
+            celebrities: match.celebrities,
+            createdAt: new Date(match.created_at)
+          }));
+          
+          setMatches(formattedMatches);
+        }
+      } catch (error: any) {
+        console.error('Error loading matches:', error.message);
+        toast({
+          title: 'Error loading matches',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingMatches(false);
+      }
+    }
+
+    if (user) {
+      loadProfileData();
+      loadMatches();
+    } else if (!loading) {
+      setIsLoadingProfile(false);
+      setIsLoadingMatches(false);
+    }
+  }, [user, loading, toast]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // The navigation and toast notification are handled in the AuthContext
+    } catch (error: any) {
+      toast({
+        title: 'Error signing out',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
-  if (isLoading) {
+  // Show loading state
+  if (isLoadingProfile || loading) {
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-[80vh]">
@@ -114,10 +147,13 @@ const Profile = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    navigate("/login");
-    return null;
+  // Redirect to login if not authenticated
+  if (!user && !loading) {
+    return <Navigate to="/login" />;
   }
+
+  // Fallback avatar for users without a profile image
+  const avatarUrl = profileData?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1180&q=80';
 
   return (
     <Layout>
@@ -132,16 +168,16 @@ const Profile = () => {
             <div className="flex justify-center mb-4">
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20">
                 <img
-                  src={mockUser.avatar}
-                  alt={mockUser.name}
+                  src={avatarUrl}
+                  alt={profileData?.name || 'User'}
                   className="w-full h-full object-cover"
                 />
               </div>
             </div>
             
-            <h1 className="text-3xl font-bold mt-2 mb-1">{mockUser.name}</h1>
+            <h1 className="text-3xl font-bold mt-2 mb-1">{profileData?.name || 'User'}</h1>
             <p className="text-muted-foreground">
-              {mockUser.email}
+              {user?.email}
             </p>
           </div>
         </div>
@@ -160,9 +196,30 @@ const Profile = () => {
           <TabsContent value="history" className="space-y-6">
             <h2 className="text-xl font-semibold mb-4">Your Celebrity Matches</h2>
             
-            {mockHistory.length > 0 ? (
+            {isLoadingMatches ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin-slow">
+                  <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            ) : matches.length > 0 ? (
               <div className="space-y-6">
-                {mockHistory.map((match) => (
+                {matches.map((match) => (
                   <div 
                     key={match.id}
                     className="bg-background border border-border rounded-lg p-4 transition-all hover:shadow-subtle"

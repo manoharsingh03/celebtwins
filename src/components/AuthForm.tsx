@@ -11,13 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 interface AuthFormProps {
   type: "login" | "register";
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }
 
-const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
+const AuthForm = ({ type, onSubmit, isSubmitting = false }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,30 +54,15 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      // In the actual implementation, this would be an API call
-      // For now, we'll simulate success after a brief delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      onSubmit({ email, password, name });
-      
-      toast({
-        title: type === "login" ? "Welcome back!" : "Account created",
-        description: type === "login" 
-          ? "You have successfully logged in"
-          : "Your account has been created successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // Form data to submit
+    const formData = { 
+      email, 
+      password,
+      ...(type === "register" && { name })
+    };
+    
+    // Call the onSubmit handler provided by the parent component
+    onSubmit(formData);
   };
 
   return (
@@ -103,7 +88,7 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="John Doe"
-              disabled={isLoading}
+              disabled={isSubmitting}
             />
           </div>
         )}
@@ -116,7 +101,7 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
-            disabled={isLoading}
+            disabled={isSubmitting}
           />
         </div>
 
@@ -138,7 +123,7 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            disabled={isLoading}
+            disabled={isSubmitting}
           />
         </div>
 
@@ -161,8 +146,8 @@ const AuthForm = ({ type, onSubmit }: AuthFormProps) => {
           </div>
         )}
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
             <>
               <svg
                 className="animate-spin -ml-1 mr-2 h-4 w-4"
