@@ -103,9 +103,38 @@ const Upload = () => {
         
         <div className="max-w-md mx-auto">
           <ImageUploader 
-            onImageUpload={handleImageUpload} 
-            uploadStatus={uploadStatus}
-            setUploadStatus={setUploadStatus}
+            onImageSelected={(file) => {
+              setUploadStatus("uploading");
+              
+              // Create a FormData object to send the file
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              // Upload the file to Supabase storage
+              fetch('/functions/v1/upload-image', {
+                method: 'POST',
+                body: formData,
+              })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error('Failed to upload image');
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  handleImageUpload(data.imageUrl);
+                })
+                .catch(error => {
+                  console.error('Error uploading image:', error);
+                  setUploadStatus("error");
+                  toast({
+                    title: "Upload failed",
+                    description: "Failed to upload the image. Please try again.",
+                    variant: "destructive",
+                  });
+                });
+            }}
+            status={uploadStatus}
           />
           
           {uploadedImageUrl && uploadStatus !== "uploading" && (

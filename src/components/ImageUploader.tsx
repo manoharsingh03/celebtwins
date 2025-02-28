@@ -94,8 +94,8 @@ const ImageUploader = ({ onImageSelected, status }: ImageUploaderProps) => {
       {!preview ? (
         <div
           className={cn(
-            "upload-zone",
-            dragActive ? "upload-zone-active" : "",
+            "border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center",
+            dragActive ? "border-primary bg-primary/5" : "",
             status === "uploading" ? "opacity-70 pointer-events-none" : ""
           )}
           onDragEnter={handleDrag}
