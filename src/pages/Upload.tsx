@@ -82,7 +82,7 @@ const Upload = () => {
           .insert({
             user_id: user.id,
             user_image: uploadedImageUrl,
-            celebrities: celebrities,
+            celebrities: celebrities as any, // Cast to any to satisfy Json type
           })
           .select()
           .single();
@@ -146,33 +146,9 @@ const Upload = () => {
             onImageSelected={(file) => {
               setUploadStatus("uploading");
               
-              // Create a FormData object to send the file
-              const formData = new FormData();
-              formData.append('file', file);
-              
-              // Upload the file to Supabase storage through our edge function
-              fetch('/functions/v1/upload-image', {
-                method: 'POST',
-                body: formData,
-              })
-                .then(response => {
-                  if (!response.ok) {
-                    throw new Error('Failed to upload image');
-                  }
-                  return response.json();
-                })
-                .then(data => {
-                  handleImageUpload(data.imageUrl);
-                })
-                .catch(error => {
-                  console.error('Error uploading image:', error);
-                  setUploadStatus("error");
-                  toast({
-                    title: "Upload failed",
-                    description: "Failed to upload the image. Please try again.",
-                    variant: "destructive",
-                  });
-                });
+              // Create object URL for immediate preview
+              const imageUrl = URL.createObjectURL(file);
+              handleImageUpload(imageUrl);
             }}
             status={uploadStatus}
           />
