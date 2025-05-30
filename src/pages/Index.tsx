@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -192,6 +191,19 @@ const Index = () => {
           </div>
         </div>
       </section>
+      
+      {/* Add this section at the bottom for development access */}
+      <div className="bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-sm font-medium text-gray-600 mb-4">Developer Tools</h3>
+          <a 
+            href="/admin/embeddings" 
+            className="text-sm text-blue-600 hover:text-blue-800 underline"
+          >
+            Generate Celebrity Embeddings
+          </a>
+        </div>
+      </div>
     </Layout>
   );
 };
