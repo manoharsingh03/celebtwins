@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Celebrity } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,6 +9,8 @@ import { Twitter, Facebook, Instagram, Download, Share2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import ShareImageGenerator from "./ShareImageGenerator";
+import { generateShareableContent } from "@/lib/faceMatching";
 
 interface CelebrityMatchProps {
   userImage: string;
@@ -20,58 +22,102 @@ const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps
   const [selectedCelebrity, setSelectedCelebrity] = useState<Celebrity | null>(
     celebrities.length > 0 ? celebrities[0] : null
   );
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleCelebritySelect = (celebrity: Celebrity) => {
     setSelectedCelebrity(celebrity);
+    setShareImageUrl(null); // Reset share image when celebrity changes
   };
 
   const handleShare = () => {
+    if (!selectedCelebrity) return;
+
+    const shareContent = generateShareableContent(selectedCelebrity, userImage);
+    
     if (navigator.share) {
       navigator.share({
-        title: 'My Celebrity Match',
-        text: `I look ${selectedCelebrity?.matchPercentage}% like ${selectedCelebrity?.name}!`,
-        url: window.location.href,
+        title: shareContent.title,
+        text: `${shareContent.description} ${shareContent.hashtags}`,
+        url: shareContent.shareUrl,
       }).catch(err => {
         console.error('Error sharing:', err);
       });
     } else {
+      // Fallback: copy to clipboard
+      const shareText = `${shareContent.title}\n${shareContent.description}\n${shareContent.hashtags}\n${shareContent.shareUrl}`;
+      navigator.clipboard.writeText(shareText).then(() => {
+        toast({
+          title: "Copied to clipboard!",
+          description: "Share text has been copied. Paste it anywhere to share your match!",
+        });
+      });
+    }
+  };
+
+  const handleDownload = () => {
+    if (shareImageUrl) {
+      const link = document.createElement('a');
+      link.download = `celebrity-match-${selectedCelebrity?.name}.png`;
+      link.href = shareImageUrl;
+      link.click();
+      
       toast({
-        title: "Sharing not supported",
-        description: "Web Share API is not supported in your browser.",
+        title: "Image Downloaded",
+        description: "Your celebrity match image has been saved!",
+      });
+    } else {
+      toast({
+        title: "Image not ready",
+        description: "Please wait for the share image to generate.",
         variant: "destructive",
       });
     }
   };
 
-  const handleSaveImage = () => {
-    // In a real app, you would implement image saving logic here
-    toast({
-      title: "Image Saved",
-      description: "Your match has been saved to your account.",
-    });
-  };
-
   const handleSocialShare = (platform: string) => {
-    // In a real app, you would implement social sharing logic here
-    toast({
-      title: `Shared on ${platform}`,
-      description: `Your match has been shared on ${platform}.`,
-    });
+    if (!selectedCelebrity) return;
+    
+    const shareContent = generateShareableContent(selectedCelebrity, userImage);
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'Twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareContent.title} ${shareContent.description} ${shareContent.hashtags}`)}&url=${encodeURIComponent(shareContent.shareUrl)}`;
+        break;
+      case 'Facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareContent.shareUrl)}&quote=${encodeURIComponent(`${shareContent.title} ${shareContent.description}`)}`;
+        break;
+      case 'WhatsApp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(`${shareContent.title} ${shareContent.description} ${shareContent.hashtags} ${shareContent.shareUrl}`)}`;
+        break;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
   };
 
   const promptLogin = () => {
     toast({
       title: "Login Required",
-      description: "Create an account to save your matches.",
+      description: "Create an account to save your matches and download images.",
     });
     navigate("/login");
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-fade-in">
+      {selectedCelebrity && (
+        <ShareImageGenerator
+          userImage={userImage}
+          celebrity={selectedCelebrity}
+          onImageGenerated={setShareImageUrl}
+        />
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* User Image */}
         <div className="order-1 md:order-1">
@@ -91,7 +137,7 @@ const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps
         <div className="flex flex-col items-center justify-center order-3 md:order-2">
           {selectedCelebrity && (
             <div className="w-full text-center space-y-6">
-              <h3 className="text-xl font-medium">Match Details</h3>
+              <h3 className="text-xl font-medium">🎭 Celebrity Twin Found!</h3>
               
               <div className="space-y-3">
                 <div className="space-y-1">
@@ -99,7 +145,16 @@ const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps
                     <span>Match Accuracy</span>
                     <span className="font-medium">{selectedCelebrity.matchPercentage}%</span>
                   </div>
-                  <Progress value={selectedCelebrity.matchPercentage} className="h-2" />
+                  <Progress value={selectedCelebrity.matchPercentage} className="h-3" />
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-primary">
+                    {selectedCelebrity.matchPercentage >= 80 && "🔥 Incredible match!"}
+                    {selectedCelebrity.matchPercentage >= 60 && selectedCelebrity.matchPercentage < 80 && "✨ Great similarity!"}
+                    {selectedCelebrity.matchPercentage >= 40 && selectedCelebrity.matchPercentage < 60 && "👀 Nice resemblance!"}
+                    {selectedCelebrity.matchPercentage < 40 && "🎭 Unique look!"}
+                  </p>
                 </div>
               </div>
 
@@ -109,10 +164,11 @@ const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps
                     variant="outline" 
                     size="sm" 
                     className="w-full"
-                    onClick={user ? handleSaveImage : promptLogin}
+                    onClick={user ? handleDownload : promptLogin}
+                    disabled={!shareImageUrl}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Save
+                    Download
                   </Button>
                   <Button 
                     variant="outline" 
@@ -146,7 +202,7 @@ const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps
                     size="icon" 
                     variant="outline" 
                     className="rounded-full w-8 h-8"
-                    onClick={() => handleSocialShare("Instagram")}
+                    onClick={() => handleSocialShare("WhatsApp")}
                   >
                     <Instagram className="h-4 w-4 text-[#E1306C]" />
                   </Button>
@@ -170,16 +226,20 @@ const CelebrityMatch = ({ userImage, celebrities, matchId }: CelebrityMatchProps
                 <p className="text-muted-foreground">No celebrity selected</p>
               </div>
             )}
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-white/80 text-black backdrop-blur-sm hover:bg-white/90">Celebrity</Badge>
-            </div>
+            {selectedCelebrity && (
+              <div className="absolute top-3 left-3">
+                <Badge className="bg-white/80 text-black backdrop-blur-sm hover:bg-white/90">
+                  {selectedCelebrity.name}
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Celebrity Selection */}
       <div className="mt-8">
-        <h3 className="text-lg font-medium mb-4 text-center">Other Matches</h3>
+        <h3 className="text-lg font-medium mb-4 text-center">Other Celebrity Matches</h3>
         <div className="flex overflow-x-auto py-2 space-x-4 scrollbar-thin">
           {celebrities.map((celebrity) => (
             <div

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Celebrity } from "@/lib/types";
-import CelebrityMatch from "@/components/CelebrityMatch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,7 +28,7 @@ const Profile = () => {
 
       try {
         const { data, error } = await supabase
-          .from("match_history")
+          .from("celebrity_matches")
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
@@ -102,11 +101,17 @@ const Profile = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
                       {match.celebrities.slice(0, 3).map((celebrity, index) => (
                         <div key={index} className="flex items-center gap-3">
-                          <CelebrityMatch 
-                            celebrity={celebrity} 
-                            rank={index + 1}
-                            minimal={true}
-                          />
+                          <div className="w-12 h-12 rounded-full overflow-hidden">
+                            <img 
+                              src={celebrity.image} 
+                              alt={celebrity.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{celebrity.name}</p>
+                            <p className="text-xs text-muted-foreground">{celebrity.matchPercentage}% match</p>
+                          </div>
                         </div>
                       ))}
                     </div>
