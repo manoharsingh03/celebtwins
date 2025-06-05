@@ -1,20 +1,21 @@
+
 import * as faceapi from 'face-api.js';
 import { Celebrity } from './types';
 
 // Replace this with your real celebrity data - make sure names match your embeddings exactly
 let CELEBRITY_DATASET: Celebrity[] = [
-  { id: '1', name: 'Leonardo DiCaprio', image: '/images/celebrities/leonardo-dicaprio.jpg', matchPercentage: 0 },
-  { id: '2', name: 'Emma Watson', image: '/images/celebrities/emma-watson.jpg', matchPercentage: 0 },
-  { id: '3', name: 'Chris Hemsworth', image: '/images/celebrities/chris-hemsworth.jpg', matchPercentage: 0 },
-  { id: '4', name: 'Scarlett Johansson', image: '/images/celebrities/scarlett-johansson.jpg', matchPercentage: 0 },
-  { id: '5', name: 'Robert Downey Jr', image: '/images/celebrities/robert-downey-jr.jpg', matchPercentage: 0 },
-  { id: '6', name: 'Jennifer Lawrence', image: '/images/celebrities/jennifer-lawrence.jpg', matchPercentage: 0 },
-  { id: '7', name: 'Brad Pitt', image: '/images/celebrities/brad-pitt.jpg', matchPercentage: 0 },
-  { id: '8', name: 'Angelina Jolie', image: '/images/celebrities/angelina-jolie.jpg', matchPercentage: 0 },
-  { id: '9', name: 'Tom Cruise', image: '/images/celebrities/tom-cruise.jpg', matchPercentage: 0 },
-  { id: '10', name: 'Will Smith', image: '/images/celebrities/will-smith.jpg', matchPercentage: 0 },
-  // Add all your 100 celebrities here with exact names from your embeddings
-  // Example format: { id: 'X', name: 'Exact Name From Embeddings', image: '/images/celebrities/filename.jpg', matchPercentage: 0 },
+  { id: '1', name: 'Leonardo DiCaprio', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '2', name: 'Emma Watson', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '3', name: 'Chris Hemsworth', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '4', name: 'Scarlett Johansson', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '5', name: 'Robert Downey Jr', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '6', name: 'Jennifer Lawrence', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '7', name: 'Brad Pitt', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '8', name: 'Angelina Jolie', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '9', name: 'Tom Cruise', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  { id: '10', name: 'Will Smith', image: 'https://your-actual-image-url-here.jpg', matchPercentage: 0 },
+  // Add all your 100 celebrities here with exact names from your embeddings and their actual image URLs
+  // Example format: { id: 'X', name: 'Exact Name From Embeddings', image: 'https://your-actual-image-url.jpg', matchPercentage: 0 },
 ];
 
 // This will store the real celebrity embeddings
