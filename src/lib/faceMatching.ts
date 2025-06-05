@@ -1,15 +1,20 @@
-
 import * as faceapi from 'face-api.js';
 import { Celebrity } from './types';
 
-// This will be replaced with real celebrity data once embeddings are generated
+// Replace this with your real celebrity data - make sure names match your embeddings exactly
 let CELEBRITY_DATASET: Celebrity[] = [
-  // Placeholder data - will be replaced with real celebrity embeddings
-  { id: '1', name: 'Chris Hemsworth', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face', matchPercentage: 0 },
-  { id: '2', name: 'Emma Stone', image: 'https://images.unsplash.com/photo-1494790108755-2616b68bb33b?w=400&h=400&fit=crop&crop=face', matchPercentage: 0 },
-  { id: '3', name: 'Ryan Gosling', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face', matchPercentage: 0 },
-  { id: '4', name: 'Scarlett Johansson', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face', matchPercentage: 0 },
-  { id: '5', name: 'Robert Downey Jr.', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face', matchPercentage: 0 },
+  { id: '1', name: 'Leonardo DiCaprio', image: '/images/celebrities/leonardo-dicaprio.jpg', matchPercentage: 0 },
+  { id: '2', name: 'Emma Watson', image: '/images/celebrities/emma-watson.jpg', matchPercentage: 0 },
+  { id: '3', name: 'Chris Hemsworth', image: '/images/celebrities/chris-hemsworth.jpg', matchPercentage: 0 },
+  { id: '4', name: 'Scarlett Johansson', image: '/images/celebrities/scarlett-johansson.jpg', matchPercentage: 0 },
+  { id: '5', name: 'Robert Downey Jr', image: '/images/celebrities/robert-downey-jr.jpg', matchPercentage: 0 },
+  { id: '6', name: 'Jennifer Lawrence', image: '/images/celebrities/jennifer-lawrence.jpg', matchPercentage: 0 },
+  { id: '7', name: 'Brad Pitt', image: '/images/celebrities/brad-pitt.jpg', matchPercentage: 0 },
+  { id: '8', name: 'Angelina Jolie', image: '/images/celebrities/angelina-jolie.jpg', matchPercentage: 0 },
+  { id: '9', name: 'Tom Cruise', image: '/images/celebrities/tom-cruise.jpg', matchPercentage: 0 },
+  { id: '10', name: 'Will Smith', image: '/images/celebrities/will-smith.jpg', matchPercentage: 0 },
+  // Add all your 100 celebrities here with exact names from your embeddings
+  // Example format: { id: 'X', name: 'Exact Name From Embeddings', image: '/images/celebrities/filename.jpg', matchPercentage: 0 },
 ];
 
 // This will store the real celebrity embeddings
