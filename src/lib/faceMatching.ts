@@ -1,3 +1,4 @@
+
 import * as faceapi from 'face-api.js';
 import { Celebrity } from './types';
 
@@ -123,7 +124,7 @@ export const precomputeCelebrityDescriptors = async () => {
         } else {
           console.warn(`⚠️ No face detected for ${celebrity.name}, using fallback`);
           // Generate a more realistic fallback embedding
-          const seed = celebrity.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+          let seed = celebrity.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
           const random = () => {
             const x = Math.sin(seed++) * 10000;
             return (x - Math.floor(x)) * 2 - 1;
