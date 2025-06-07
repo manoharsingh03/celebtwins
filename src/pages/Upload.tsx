@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -16,30 +15,37 @@ const Upload = () => {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [embeddingsLoading, setEmbeddingsLoading] = useState(false);
+  const [initializationProgress, setInitializationProgress] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
-    // Load face-api.js models on component mount
+    // Optimized initialization with progress tracking
     const initializeFaceApi = async () => {
       try {
         setModelsLoading(true);
+        setInitializationProgress(10);
+        
         await loadFaceApiModels();
+        setInitializationProgress(40);
         
         setEmbeddingsLoading(true);
         toast({
           title: "Processing Celebrity Photos",
-          description: "Loading real celebrity face data... This may take a moment.",
+          description: "Loading optimized celebrity data...",
         });
         
+        setInitializationProgress(70);
         await precomputeCelebrityDescriptors();
+        setInitializationProgress(100);
+        
         setEmbeddingsLoading(false);
         setModelsLoading(false);
         
         toast({
-          title: "Ready to match!",
-          description: "Face recognition with real celebrity photos is ready.",
+          title: "Ready to match! ⚡",
+          description: "Face recognition is optimized and ready for fast matching.",
         });
       } catch (error) {
         console.error('Error initializing face-api:', error);
@@ -83,7 +89,7 @@ const Upload = () => {
     setUploadStatus("processing");
 
     try {
-      // Use client-side face matching with real celebrity data
+      // Fast celebrity matching
       const celebrities = await findCelebrityMatch(uploadedImageUrl);
       
       // Save match to database if user is logged in
@@ -110,7 +116,7 @@ const Upload = () => {
         }
       }
       
-      // Navigate to results page with the processed data
+      // Navigate to results page
       navigate("/results", {
         state: {
           userImage: uploadedImageUrl,
@@ -149,10 +155,19 @@ const Upload = () => {
             
             {(modelsLoading || embeddingsLoading) && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700">
-                  {modelsLoading ? "🧠 Loading AI face recognition models..." : "📸 Processing real celebrity photos..."}
-                  <br />This may take a moment for the best results.
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-blue-700">
+                    {modelsLoading ? "🧠 Loading AI models..." : "📸 Processing celebrities..."}
+                  </p>
+                  <span className="text-xs text-blue-600">{initializationProgress}%</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${initializationProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">Optimized for faster matching!</p>
               </div>
             )}
           </div>
@@ -162,8 +177,6 @@ const Upload = () => {
           <ImageUploader 
             onImageSelected={(file) => {
               setUploadStatus("uploading");
-              
-              // Create object URL for immediate preview
               const imageUrl = URL.createObjectURL(file);
               handleImageUpload(imageUrl);
             }}
@@ -187,14 +200,14 @@ const Upload = () => {
                     Analyzing your face...
                   </>
                 ) : (modelsLoading || embeddingsLoading) ? (
-                  embeddingsLoading ? "Processing Celebrity Photos..." : "Loading AI models..."
+                  embeddingsLoading ? "Processing Celebrities..." : "Loading AI models..."
                 ) : "🔍 Find My Celebrity Twin!"}
               </Button>
               
               <p className="text-sm text-muted-foreground mt-2">
                 {(modelsLoading || embeddingsLoading)
-                  ? "Please wait for the real celebrity data to finish loading" 
-                  : "Our AI will analyze your facial features using real celebrity photos!"
+                  ? "Optimized processing - much faster than before!" 
+                  : "Fast AI analysis with real celebrity photos!"
                 }
               </p>
             </div>
