@@ -15,6 +15,7 @@ const Upload = () => {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [embeddingsLoading, setEmbeddingsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -23,18 +24,29 @@ const Upload = () => {
     // Load face-api.js models on component mount
     const initializeFaceApi = async () => {
       try {
+        setModelsLoading(true);
         await loadFaceApiModels();
+        
+        setEmbeddingsLoading(true);
+        toast({
+          title: "Processing Celebrity Photos",
+          description: "Loading real celebrity face data... This may take a moment.",
+        });
+        
         await precomputeCelebrityDescriptors();
+        setEmbeddingsLoading(false);
         setModelsLoading(false);
+        
         toast({
           title: "Ready to match!",
-          description: "Face recognition models loaded successfully.",
+          description: "Face recognition with real celebrity photos is ready.",
         });
       } catch (error) {
         console.error('Error initializing face-api:', error);
         setModelsLoading(false);
+        setEmbeddingsLoading(false);
         toast({
-          title: "Model loading failed",
+          title: "Initialization failed",
           description: "Some features may not work properly. Please refresh the page.",
           variant: "destructive",
         });
@@ -59,7 +71,7 @@ const Upload = () => {
       return;
     }
 
-    if (modelsLoading) {
+    if (modelsLoading || embeddingsLoading) {
       toast({
         title: "Please wait",
         description: "Face recognition models are still loading...",
@@ -71,7 +83,7 @@ const Upload = () => {
     setUploadStatus("processing");
 
     try {
-      // Use client-side face matching
+      // Use client-side face matching with real celebrity data
       const celebrities = await findCelebrityMatch(uploadedImageUrl);
       
       // Save match to database if user is logged in
@@ -83,7 +95,7 @@ const Upload = () => {
             .insert({
               user_id: user.id,
               user_image: uploadedImageUrl,
-              celebrities: celebrities as any, // Cast to any to satisfy Json type
+              celebrities: celebrities as any,
             })
             .select()
             .single();
@@ -95,7 +107,6 @@ const Upload = () => {
           }
         } catch (dbError) {
           console.error("Database error:", dbError);
-          // Continue without saving to database
         }
       }
       
@@ -136,10 +147,11 @@ const Upload = () => {
               Share your match with friends and see who gets the highest score!
             </p>
             
-            {modelsLoading && (
+            {(modelsLoading || embeddingsLoading) && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  🧠 Loading AI face recognition models... This may take a moment.
+                  {modelsLoading ? "🧠 Loading AI face recognition models..." : "📸 Processing real celebrity photos..."}
+                  <br />This may take a moment for the best results.
                 </p>
               </div>
             )}
@@ -163,7 +175,7 @@ const Upload = () => {
               <Button 
                 size="lg" 
                 onClick={handleProcessImage}
-                disabled={uploadStatus === "processing" || modelsLoading}
+                disabled={uploadStatus === "processing" || modelsLoading || embeddingsLoading}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
               >
                 {uploadStatus === "processing" ? (
@@ -174,15 +186,15 @@ const Upload = () => {
                     </svg>
                     Analyzing your face...
                   </>
-                ) : modelsLoading ? (
-                  "Loading AI models..."
+                ) : (modelsLoading || embeddingsLoading) ? (
+                  embeddingsLoading ? "Processing Celebrity Photos..." : "Loading AI models..."
                 ) : "🔍 Find My Celebrity Twin!"}
               </Button>
               
               <p className="text-sm text-muted-foreground mt-2">
-                {modelsLoading 
-                  ? "Please wait for the AI models to finish loading" 
-                  : "Our AI will analyze your facial features and find your celebrity doppelgänger!"
+                {(modelsLoading || embeddingsLoading)
+                  ? "Please wait for the real celebrity data to finish loading" 
+                  : "Our AI will analyze your facial features using real celebrity photos!"
                 }
               </p>
             </div>

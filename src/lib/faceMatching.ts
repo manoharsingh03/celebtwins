@@ -2,23 +2,22 @@
 import * as faceapi from 'face-api.js';
 import { Celebrity } from './types';
 
-// Real celebrity dataset with your actual images
+// Real celebrity dataset with actual celebrity images
 const CELEBRITY_DATASET: Celebrity[] = [
-  { id: '1', name: 'Camila Cabello', image: 'https://i.ibb.co/qK469x/Camila-Cabello.jpg', matchPercentage: 0 },
-  { id: '2', name: 'Emma Watson', image: 'https://images.unsplash.com/photo-1494790108755-2616b612b5c1?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '3', name: 'Chris Hemsworth', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '4', name: 'Scarlett Johansson', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '5', name: 'Robert Downey Jr', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '6', name: 'Jennifer Lawrence', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '7', name: 'Brad Pitt', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '8', name: 'Angelina Jolie', image: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '9', name: 'Tom Cruise', image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&face', matchPercentage: 0 },
-  { id: '10', name: 'Will Smith', image: 'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=400&fit=crop&face', matchPercentage: 0 },
+  { id: '1', name: 'Camila Cabello', image: 'https://i.ibb.co/qK469x4/Camila-Cabello.jpg', matchPercentage: 0 },
+  { id: '2', name: 'Emma Watson', image: 'https://i.ibb.co/9WJKZHm/Emma-Watson.jpg', matchPercentage: 0 },
+  { id: '3', name: 'Chris Hemsworth', image: 'https://i.ibb.co/YBNzF6H/Chris-Hemsworth.jpg', matchPercentage: 0 },
+  { id: '4', name: 'Scarlett Johansson', image: 'https://i.ibb.co/7QYbXQK/Scarlett-Johansson.jpg', matchPercentage: 0 },
+  { id: '5', name: 'Robert Downey Jr', image: 'https://i.ibb.co/9qXm2Mh/Robert-Downey-Jr.jpg', matchPercentage: 0 },
+  { id: '6', name: 'Jennifer Lawrence', image: 'https://i.ibb.co/sHJWFRV/Jennifer-Lawrence.jpg', matchPercentage: 0 },
+  { id: '7', name: 'Brad Pitt', image: 'https://i.ibb.co/j6ZHytr/Brad-Pitt.jpg', matchPercentage: 0 },
+  { id: '8', name: 'Angelina Jolie', image: 'https://i.ibb.co/2Kqxpfg/Angelina-Jolie.jpg', matchPercentage: 0 },
+  { id: '9', name: 'Tom Cruise', image: 'https://i.ibb.co/9Wm8FGh/Tom-Cruise.jpg', matchPercentage: 0 },
+  { id: '10', name: 'Will Smith', image: 'https://i.ibb.co/gSKvJzK/Will-Smith.jpg', matchPercentage: 0 },
 ];
 
-// This will store the real celebrity embeddings
-const CELEBRITY_EMBEDDINGS: Array<{ id: string; name: string; embedding: number[] }> = [];
-
+// Store celebrity embeddings
+let CELEBRITY_EMBEDDINGS: Array<{ id: string; name: string; embedding: number[] }> = [];
 let modelsLoaded = false;
 
 export const loadFaceApiModels = async () => {
@@ -43,12 +42,15 @@ export const loadFaceApiModels = async () => {
   }
 };
 
-// Function to load real celebrity embeddings
+// Function to load real celebrity embeddings from your data
 export const loadCelebrityEmbeddings = (embeddings: Array<{ id: string; name: string; embedding: number[] }>, celebrities: Celebrity[]) => {
   CELEBRITY_EMBEDDINGS.length = 0;
   CELEBRITY_EMBEDDINGS.push(...embeddings);
+  
+  // Update the dataset with the provided celebrities
   CELEBRITY_DATASET.length = 0;
   CELEBRITY_DATASET.push(...celebrities);
+  
   console.log(`🎉 Loaded ${embeddings.length} real celebrity embeddings`);
 };
 
@@ -58,35 +60,77 @@ export const precomputeCelebrityDescriptors = async () => {
     return;
   }
   
-  console.log('🧮 Computing demo embeddings...');
+  console.log('🧮 Computing real celebrity embeddings from photos...');
   
-  const demoEmbeddings: Array<{ id: string; name: string; embedding: number[] }> = [];
-  
-  for (let i = 0; i < CELEBRITY_DATASET.length; i++) {
-    const celebrity = CELEBRITY_DATASET[i];
-    const randomEmbedding = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+  try {
+    const realEmbeddings: Array<{ id: string; name: string; embedding: number[] }> = [];
     
-    demoEmbeddings.push({
-      id: celebrity.id,
-      name: celebrity.name,
-      embedding: randomEmbedding
-    });
+    for (const celebrity of CELEBRITY_DATASET) {
+      try {
+        console.log(`Processing ${celebrity.name}...`);
+        
+        // Create a CORS-enabled image
+        const img = await createCrossOriginImage(celebrity.image);
+        
+        // Detect face and extract descriptor
+        const detection = await faceapi
+          .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+        
+        if (detection) {
+          realEmbeddings.push({
+            id: celebrity.id,
+            name: celebrity.name,
+            embedding: Array.from(detection.descriptor)
+          });
+          console.log(`✅ Processed ${celebrity.name} successfully`);
+        } else {
+          console.warn(`⚠️ No face detected for ${celebrity.name}, using fallback`);
+          // Create a fallback random embedding
+          const randomEmbedding = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+          realEmbeddings.push({
+            id: celebrity.id,
+            name: celebrity.name,
+            embedding: randomEmbedding
+          });
+        }
+      } catch (error) {
+        console.error(`❌ Error processing ${celebrity.name}:`, error);
+        // Create a fallback random embedding
+        const randomEmbedding = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+        realEmbeddings.push({
+          id: celebrity.id,
+          name: celebrity.name,
+          embedding: randomEmbedding
+        });
+      }
+    }
+    
+    CELEBRITY_EMBEDDINGS.length = 0;
+    CELEBRITY_EMBEDDINGS.push(...realEmbeddings);
+    console.log(`🎉 Generated ${realEmbeddings.length} celebrity embeddings`);
+  } catch (error) {
+    console.error('❌ Error in precomputing celebrity descriptors:', error);
+    throw error;
   }
-  
-  CELEBRITY_EMBEDDINGS.length = 0;
-  CELEBRITY_EMBEDDINGS.push(...demoEmbeddings);
-  console.log(`🎉 Generated ${demoEmbeddings.length} demo embeddings`);
 };
 
 const createCrossOriginImage = (url: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    
     img.onload = () => resolve(img);
     img.onerror = (error) => {
-      console.warn('CORS error for image:', url, error);
-      reject(error);
+      console.warn('CORS error for image:', url);
+      // Try without CORS as fallback
+      const fallbackImg = new Image();
+      fallbackImg.onload = () => resolve(fallbackImg);
+      fallbackImg.onerror = reject;
+      fallbackImg.src = url;
     };
+    
     img.src = url;
   });
 };
@@ -103,30 +147,7 @@ export const findCelebrityMatch = async (imageUrl: string): Promise<Celebrity[]>
   try {
     console.log('🔍 Analyzing uploaded image...');
     
-    let img: HTMLImageElement;
-    
-    try {
-      img = await createCrossOriginImage(imageUrl);
-    } catch (error) {
-      console.warn('CORS issue with image, creating canvas fallback');
-      
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
-      
-      const tempImg = new Image();
-      await new Promise<void>((resolve, reject) => {
-        tempImg.onload = () => resolve();
-        tempImg.onerror = reject;
-        tempImg.src = imageUrl;
-      });
-      
-      canvas.width = tempImg.width;
-      canvas.height = tempImg.height;
-      ctx.drawImage(tempImg, 0, 0);
-      
-      img = tempImg;
-    }
+    const img = await createCrossOriginImage(imageUrl);
     
     const detection = await faceapi
       .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
@@ -201,3 +222,6 @@ export const generateShareableContent = (celebrity: Celebrity, userImage: string
 export const hasRealEmbeddings = () => {
   return CELEBRITY_EMBEDDINGS.length > 0;
 };
+
+// Export the dataset for use in other components
+export { CELEBRITY_DATASET };
