@@ -77,20 +77,25 @@ const Upload = () => {
       // Save match to database if user is logged in
       let matchId = undefined;
       if (user && celebrities.length > 0) {
-        const { data, error } = await supabase
-          .from("celebrity_matches")
-          .insert({
-            user_id: user.id,
-            user_image: uploadedImageUrl,
-            celebrities: celebrities as any, // Cast to any to satisfy Json type
-          })
-          .select()
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from("celebrity_matches")
+            .insert({
+              user_id: user.id,
+              user_image: uploadedImageUrl,
+              celebrities: celebrities as any, // Cast to any to satisfy Json type
+            })
+            .select()
+            .single();
 
-        if (error) {
-          console.error("Error saving match:", error);
-        } else {
-          matchId = data.id;
+          if (error) {
+            console.error("Error saving match:", error);
+          } else {
+            matchId = data.id;
+          }
+        } catch (dbError) {
+          console.error("Database error:", dbError);
+          // Continue without saving to database
         }
       }
       
