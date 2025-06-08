@@ -1,4 +1,5 @@
 
+
 import { useRef, useEffect } from 'react';
 import { Celebrity } from '@/lib/types';
 
@@ -14,6 +15,41 @@ const ShareImageGenerator = ({ userImage, celebrity, onImageGenerated }: ShareIm
   useEffect(() => {
     generateShareImage();
   }, [userImage, celebrity]);
+
+  const loadImageWithFallback = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        console.warn(`Failed to load image: ${src}, using fallback`);
+        // Create a fallback colored rectangle
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const gradient = ctx.createLinearGradient(0, 0, 200, 200);
+          gradient.addColorStop(0, '#667eea');
+          gradient.addColorStop(1, '#764ba2');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 200, 200);
+          ctx.fillStyle = '#fff';
+          ctx.font = '16px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Image', 100, 90);
+          ctx.fillText('Not Available', 100, 110);
+        }
+        
+        const fallbackImg = new Image();
+        fallbackImg.onload = () => resolve(fallbackImg);
+        fallbackImg.src = canvas.toDataURL();
+      };
+      
+      img.src = src;
+    });
+  };
 
   const generateShareImage = async () => {
     const canvas = canvasRef.current;
@@ -34,23 +70,11 @@ const ShareImageGenerator = ({ userImage, celebrity, onImageGenerated }: ShareIm
     ctx.fillRect(0, 0, 800, 600);
 
     try {
-      // Load and draw user image
-      const userImg = new Image();
-      userImg.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
-        userImg.onload = resolve;
-        userImg.onerror = reject;
-        userImg.src = userImage;
-      });
-
-      // Load and draw celebrity image
-      const celebImg = new Image();
-      celebImg.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
-        celebImg.onload = resolve;
-        celebImg.onerror = reject;
-        celebImg.src = celebrity.image;
-      });
+      // Load images with fallback handling
+      const [userImg, celebImg] = await Promise.all([
+        loadImageWithFallback(userImage),
+        loadImageWithFallback(celebrity.image)
+      ]);
 
       // Draw images in circles
       const imageSize = 200;
@@ -127,3 +151,4 @@ const ShareImageGenerator = ({ userImage, celebrity, onImageGenerated }: ShareIm
 };
 
 export default ShareImageGenerator;
+

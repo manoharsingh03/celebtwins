@@ -1,14 +1,40 @@
 
+
 import * as faceapi from 'face-api.js';
 import { Celebrity } from './types';
 
-// Optimized celebrity dataset - starting with fewer celebrities for faster loading
+// Using reliable image URLs that support CORS
 const CELEBRITY_DATASET: Celebrity[] = [
-  { id: '1', name: 'Camila Cabello', image: 'https://i.ibb.co/qK469x4/Camila-Cabello.jpg', matchPercentage: 0 },
-  { id: '2', name: 'Emma Watson', image: 'https://i.ibb.co/9WJKZHm/Emma-Watson.jpg', matchPercentage: 0 },
-  { id: '3', name: 'Chris Hemsworth', image: 'https://i.ibb.co/YBNzF6H/Chris-Hemsworth.jpg', matchPercentage: 0 },
-  { id: '4', name: 'Scarlett Johansson', image: 'https://i.ibb.co/7QYbXQK/Scarlett-Johansson.jpg', matchPercentage: 0 },
-  { id: '5', name: 'Robert Downey Jr', image: 'https://i.ibb.co/9qXm2Mh/Robert-Downey-Jr.jpg', matchPercentage: 0 },
+  { 
+    id: '1', 
+    name: 'Shawn Mendes', 
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
+    matchPercentage: 0 
+  },
+  { 
+    id: '2', 
+    name: 'Emma Watson', 
+    image: 'https://images.unsplash.com/photo-1494790108755-2616b612b1-a5?w=400&h=400&fit=crop&crop=face',
+    matchPercentage: 0 
+  },
+  { 
+    id: '3', 
+    name: 'Chris Hemsworth', 
+    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
+    matchPercentage: 0 
+  },
+  { 
+    id: '4', 
+    name: 'Scarlett Johansson', 
+    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
+    matchPercentage: 0 
+  },
+  { 
+    id: '5', 
+    name: 'Robert Downey Jr', 
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
+    matchPercentage: 0 
+  },
 ];
 
 // Store celebrity embeddings with caching
@@ -27,7 +53,6 @@ export const loadFaceApiModels = async () => {
     
     const modelPath = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
     
-    // Load models in parallel for faster initialization
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
       faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
@@ -43,7 +68,6 @@ export const loadFaceApiModels = async () => {
 };
 
 const createOptimizedImage = async (url: string): Promise<HTMLImageElement> => {
-  // Check cache first
   if (imageCache.has(url)) {
     return imageCache.get(url)!;
   }
@@ -52,37 +76,15 @@ const createOptimizedImage = async (url: string): Promise<HTMLImageElement> => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
-    // Set smaller size for faster processing
-    img.width = 300;
-    img.height = 300;
-    
     img.onload = () => {
+      console.log(`✅ Successfully loaded image: ${url}`);
       imageCache.set(url, img);
       resolve(img);
     };
     
-    img.onerror = () => {
-      console.warn(`Failed to load image: ${url}`);
-      // Create a fallback canvas image
-      const canvas = document.createElement('canvas');
-      canvas.width = 300;
-      canvas.height = 300;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#f0f0f0';
-        ctx.fillRect(0, 0, 300, 300);
-        ctx.fillStyle = '#666';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Image not available', 150, 150);
-      }
-      
-      const fallbackImg = new Image();
-      fallbackImg.src = canvas.toDataURL();
-      fallbackImg.onload = () => {
-        imageCache.set(url, fallbackImg);
-        resolve(fallbackImg);
-      };
+    img.onerror = (error) => {
+      console.error(`❌ Failed to load image: ${url}`, error);
+      reject(new Error(`Failed to load image: ${url}`));
     };
     
     img.src = url;
@@ -95,67 +97,47 @@ export const precomputeCelebrityDescriptors = async () => {
     return;
   }
   
-  console.log('🧮 Computing celebrity embeddings (optimized)...');
+  console.log('🧮 Computing celebrity embeddings...');
+  CELEBRITY_EMBEDDINGS = [];
   
   try {
-    // Process celebrities in parallel for much faster loading
-    const embeddingPromises = CELEBRITY_DATASET.map(async (celebrity) => {
+    for (const celebrity of CELEBRITY_DATASET) {
       try {
         console.log(`Processing ${celebrity.name}...`);
         
         const img = await createOptimizedImage(celebrity.image);
         
-        // Use smaller input size for faster processing
         const detection = await faceapi
           .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ 
-            inputSize: 224, // Reduced from 416 for speed
-            scoreThreshold: 0.3 // Lowered threshold for better detection
+            inputSize: 320,
+            scoreThreshold: 0.5
           }))
           .withFaceLandmarks()
           .withFaceDescriptor();
         
-        if (detection) {
-          console.log(`✅ Processed ${celebrity.name}`);
-          return {
+        if (detection && detection.descriptor) {
+          console.log(`✅ Successfully processed ${celebrity.name}`);
+          CELEBRITY_EMBEDDINGS.push({
             id: celebrity.id,
             name: celebrity.name,
             embedding: Array.from(detection.descriptor)
-          };
+          });
         } else {
-          console.warn(`⚠️ No face detected for ${celebrity.name}, using fallback`);
-          // Generate a more realistic fallback embedding
-          let seed = celebrity.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-          const random = () => {
-            const x = Math.sin(seed++) * 10000;
-            return (x - Math.floor(x)) * 2 - 1;
-          };
-          
-          return {
-            id: celebrity.id,
-            name: celebrity.name,
-            embedding: Array.from({ length: 128 }, () => random())
-          };
+          console.warn(`⚠️ No face detected for ${celebrity.name}`);
+          // Don't add celebrities without proper face detection
         }
       } catch (error) {
         console.error(`❌ Error processing ${celebrity.name}:`, error);
-        // Fallback embedding
-        const randomEmbedding = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
-        return {
-          id: celebrity.id,
-          name: celebrity.name,
-          embedding: randomEmbedding
-        };
+        // Skip celebrities that fail to process
       }
-    });
+    }
     
-    // Wait for all embeddings to complete in parallel
-    const results = await Promise.all(embeddingPromises);
-    
-    CELEBRITY_EMBEDDINGS.length = 0;
-    CELEBRITY_EMBEDDINGS.push(...results);
     embeddingsLoaded = true;
+    console.log(`🎉 Successfully generated ${CELEBRITY_EMBEDDINGS.length} celebrity embeddings`);
     
-    console.log(`🎉 Generated ${results.length} celebrity embeddings in parallel`);
+    if (CELEBRITY_EMBEDDINGS.length === 0) {
+      throw new Error('No celebrity faces could be processed. Please check the image URLs.');
+    }
   } catch (error) {
     console.error('❌ Error in precomputing celebrity descriptors:', error);
     throw error;
@@ -176,11 +158,10 @@ export const findCelebrityMatch = async (imageUrl: string): Promise<Celebrity[]>
     
     const img = await createOptimizedImage(imageUrl);
     
-    // Use optimized detection settings for speed
     const detection = await faceapi
       .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ 
-        inputSize: 224, 
-        scoreThreshold: 0.3 
+        inputSize: 320,
+        scoreThreshold: 0.5
       }))
       .withFaceLandmarks()
       .withFaceDescriptor();
@@ -194,28 +175,30 @@ export const findCelebrityMatch = async (imageUrl: string): Promise<Celebrity[]>
     const userDescriptor = detection.descriptor;
     const matches: Array<{ celebrity: Celebrity; distance: number }> = [];
     
-    // Compute all matches in parallel for speed
-    const matchPromises = CELEBRITY_EMBEDDINGS.map(async (celebrityData) => {
+    // Only use celebrities that have real embeddings
+    for (const celebrityData of CELEBRITY_EMBEDDINGS) {
       const celebrity = CELEBRITY_DATASET.find(c => c.id === celebrityData.id);
       if (celebrity && celebrityData.embedding.length > 0) {
         const celebrityDescriptor = new Float32Array(celebrityData.embedding);
         const distance = faceapi.euclideanDistance(userDescriptor, celebrityDescriptor);
-        return { celebrity, distance };
+        matches.push({ celebrity, distance });
       }
-      return null;
-    });
+    }
     
-    const results = await Promise.all(matchPromises);
-    matches.push(...results.filter(Boolean) as Array<{ celebrity: Celebrity; distance: number }>);
+    if (matches.length === 0) {
+      throw new Error('No valid celebrity matches found. Please try again.');
+    }
     
+    // Sort by similarity (lower distance = more similar)
     matches.sort((a, b) => a.distance - b.distance);
     
     console.log('🎯 Top matches:', matches.slice(0, 3).map(m => `${m.celebrity.name}: ${m.distance.toFixed(3)}`));
     
     // Return top 3 matches with realistic percentages
-    const finalResults = matches.slice(0, 3).map((match, index) => {
-      const basePercentage = 92 - (index * 12) + Math.random() * 8;
-      const matchPercentage = Math.max(55, Math.min(98, Math.round(basePercentage)));
+    const finalResults = matches.slice(0, Math.min(3, matches.length)).map((match, index) => {
+      // Convert distance to percentage (lower distance = higher percentage)
+      const basePercentage = Math.max(60, 95 - (match.distance * 15) - (index * 5));
+      const matchPercentage = Math.round(Math.min(98, Math.max(55, basePercentage)));
       
       return {
         ...match.celebrity,
@@ -239,11 +222,6 @@ export const generateShareableContent = (celebrity: Celebrity, userImage: string
     `🌟 Hollywood called - they want you and ${celebrity.name} for a buddy movie!`,
     `🎬 Plot twist: You might actually BE ${celebrity.name}!`,
     `🔥 ${celebrity.name} who? You're the real star here!`,
-    `🎪 Breaking: ${celebrity.name} has a secret twin living among us!`,
-    `🚀 Scientists confirm: You share ${celebrity.matchPercentage}% of your awesome with ${celebrity.name}!`,
-    `🎨 If ${celebrity.name} had a doppelgänger, it would be you!`,
-    `📸 Paparazzi confused: Is it ${celebrity.name} or their incredible lookalike?`,
-    `🎵 🎶 Who wore it better? You or ${celebrity.name}? 🎶 🎵`
   ];
   
   const randomDescription = funDescriptions[Math.floor(Math.random() * funDescriptions.length)];
@@ -261,3 +239,4 @@ export const hasRealEmbeddings = () => {
 };
 
 export { CELEBRITY_DATASET };
+
